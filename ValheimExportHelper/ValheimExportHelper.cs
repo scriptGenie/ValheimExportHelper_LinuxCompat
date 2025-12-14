@@ -1,5 +1,9 @@
-﻿using System.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Text.RegularExpressions;
+using System.Runtime.InteropServices;
 
 namespace ValheimExportHelper
 {
@@ -19,27 +23,51 @@ namespace ValheimExportHelper
       LaunchAssetRipper();
     }
 
-    static void LaunchAssetRipper()
+static void LaunchAssetRipper()
+{
+    Process process = new Process();
+    process.EnableRaisingEvents = true;
+
+    process.OutputDataReceived += new DataReceivedEventHandler(AssetRipperOutput);
+    process.ErrorDataReceived += new DataReceivedEventHandler(AssetRipperError);
+    process.Exited += new EventHandler(AssetRipperClosed);
+
+    // Determine working directory
+    string workingDir = AppContext.BaseDirectory;
+
+    // Candidate binaries (Linux & Windows)
+    string[] candidates = RuntimeInformation.IsOSPlatform(OSPlatform.Windows)
+        ? new[] { "AssetRipper.GUI.FREE.exe", "AssetRipper.exe" }
+        : new[] { "AssetRipper.GUI.FREE", "AssetRipper" };
+
+    string assetRipperBinary = null;
+    foreach (var candidate in candidates)
     {
-      Process process = new Process();
-      process.EnableRaisingEvents = true;
-
-      process.OutputDataReceived += new DataReceivedEventHandler(AssetRipperOutput);
-      process.ErrorDataReceived += new DataReceivedEventHandler(AssetRipperError);
-      process.Exited += new EventHandler(AssetRipperClosed);
-
-      process.StartInfo.FileName = "AssetRipper.exe";
-      //process.StartInfo.Arguments = "";
-      process.StartInfo.UseShellExecute = false;
-      process.StartInfo.RedirectStandardOutput = true;
-      process.StartInfo.RedirectStandardError = true;
-
-      process.Start();
-      process.BeginOutputReadLine();
-      process.BeginErrorReadLine();
-
-      process.WaitForExit();
+        string path = Path.Combine(workingDir, candidate);
+        if (File.Exists(path))
+        {
+            assetRipperBinary = candidate;
+            break;
+        }
     }
+
+    if (assetRipperBinary == null)
+        throw new FileNotFoundException("Could not find AssetRipper binary in current directory");
+
+    process.StartInfo.FileName = Path.Combine(workingDir, assetRipperBinary);
+    process.StartInfo.WorkingDirectory = workingDir;
+
+    process.StartInfo.UseShellExecute = false;
+    process.StartInfo.RedirectStandardOutput = true;
+    process.StartInfo.RedirectStandardError = true;
+
+    process.Start();
+    process.BeginOutputReadLine();
+    process.BeginErrorReadLine();
+
+    process.WaitForExit();
+}
+
 
     static void AssetRipperClosed(object sender, EventArgs e)
     {
