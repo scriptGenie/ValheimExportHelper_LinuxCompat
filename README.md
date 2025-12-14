@@ -48,7 +48,7 @@ Clone this repo to your machine. Navigate to the `ValheimExportHelper` directory
 dotnet build -c Release
 ```
 
-Files will be generated in the subfolder `/bin/Release` - copy these files to your `AssetRipper` directory (where `AssetRipper.exe` is located).
+Files will be generated in the subfolder `/bin/Release/net7.0` - copy these files to your `AssetRipper` directory (where `AssetRipper.exe` is located).
 
 ### Download Zip
 1. Download ValheimExportHelper.zip from the releases section.
